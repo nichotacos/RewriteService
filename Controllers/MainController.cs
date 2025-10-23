@@ -105,14 +105,14 @@ namespace RewriteService.Controllers {
                 }
 
                 return false;
- 
-            } catch (Exception e){
-                throw;
+
+            } catch (Exception e) {
+                return false;
             } finally {
                 try {
                     mysqlconn.Close();
                 } catch (Exception e) {
-                    
+                    throw;
                 }
             }
         }
@@ -173,7 +173,7 @@ namespace RewriteService.Controllers {
                     return Unauthorized();
                 }
             } catch (Exception e) {
-                throw;
+                return BadRequest(e.Message);
             } finally {
                 try {
                     mysqlconn.Close();
@@ -219,7 +219,7 @@ namespace RewriteService.Controllers {
                     return Unauthorized();
                 }
             } catch (Exception e) {
-                throw;
+                return BadRequest(e.Message);
             } finally {
                 try {
                     mysqlconn.Close();
@@ -267,7 +267,57 @@ namespace RewriteService.Controllers {
                     return Unauthorized();
                 }
             } catch (Exception e) {
-                throw;
+                return BadRequest(e.Message);
+            } finally {
+                try {
+                    mysqlconn.Close();
+                } catch (Exception e) {
+                    throw;
+                }
+            }
+        }
+
+        [HttpGet]
+        [Route("getProdukKhusus")]
+        public IActionResult getProdukKhusus([FromQuery] string kode_modul, [FromQuery] string nama_modul, [FromQuery] string flag_so) {
+            int rowCount = 0;
+            string connStr = _configuration.GetConnectionString("MySqlConn");
+            MySqlConnection mysqlconn = new MySqlConnection(connStr);
+            
+            try {
+                MySqlCommand mysqlcmd = new MySqlCommand("", mysqlconn);
+
+                if (mysqlconn.State == ConnectionState.Closed) {
+                    mysqlconn.Open();
+                }
+
+                mysqlcmd.CommandText = "SHOW TABLES LIKE 'master_produk_khusus'";
+                if (mysqlcmd.ExecuteScalar == null && string.IsNullOrEmpty(mysqlcmd.ExecuteScalar().ToString())) {
+                    mysqlconn.ChangeDatabase("trpr_cabang");
+                }
+
+                mysqlcmd.CommandText = "SELECT `kode_modul`, `nama_modul`, `flag_so`, `jadwal_hari_so`, `plu`";
+                mysqlcmd.CommandText += " FROM `master_produk_khusus`";
+                mysqlcmd.CommandText += " WHERE 1=1";
+
+                if (kode_modul.Trim().Length > 0) mysqlcmd.CommandText += $" AND `kode_modul` = '{kode_modul}'";
+                if (nama_modul.Trim().Length > 0) mysqlcmd.CommandText += $" AND `nama_modul` = '{nama_modul}'";
+                if (flag_so.Trim().Length > 0) mysqlcmd.CommandText += $" AND `flag_so` = '{flag_so}'";
+
+                mysqlcmd.CommandText += ";";
+
+                MySqlDataAdapter mysqlda = new MySqlDataAdapter();
+                DataTable dt = new DataTable();
+                mysqlda.SelectCommand = mysqlcmd;
+                mysqlda.Fill(dt);
+
+                if (dt.Rows.Count > 0) {
+                    return Ok(JsonConvert.SerializeObject(dt));
+                } else {
+                    return NotFound("No Data");
+                }
+            } catch (Exception e) {
+                return BadRequest(e.Message);
             } finally {
                 try {
                     mysqlconn.Close();
