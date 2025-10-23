@@ -4,18 +4,22 @@ using MySql.Data.MySqlClient;
 using Mysqlx.Crud;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Specialized;
 using System.Data;
 using System.Net;
 using System.Text.Json.Serialization;
+using System.IO;
 
 namespace RewriteService.Controllers {
     [Route("api/[controller]")]
     [ApiController]
     public class MainController : ControllerBase {
         private readonly IConfiguration _configuration;
+        private readonly LoggerService _logger;
 
-        public MainController(IConfiguration configuration) {
+        public MainController(IConfiguration configuration, LoggerService logger) {
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpGet("request-info")]
@@ -107,11 +111,12 @@ namespace RewriteService.Controllers {
                 return false;
 
             } catch (Exception e) {
+                _logger.TLog($"Error is Approved: {e.Message}", 3);
                 return false;
             } finally {
                 try {
                     mysqlconn.Close();
-                } catch (Exception e) {
+                } catch { 
                     throw;
                 }
             }
@@ -177,7 +182,7 @@ namespace RewriteService.Controllers {
             } finally {
                 try {
                     mysqlconn.Close();
-                } catch (Exception e) {
+                } catch {
                     throw;
                 }
             }
@@ -223,7 +228,7 @@ namespace RewriteService.Controllers {
             } finally {
                 try {
                     mysqlconn.Close();
-                } catch (Exception e) {
+                } catch {
                     throw;
                 }
             }
@@ -232,7 +237,7 @@ namespace RewriteService.Controllers {
         [HttpGet]
         [Route("getFTCabangCount")]
         public IActionResult getFTCabangCount([FromQuery] string appname) {
-            int rowCount = 0;
+            /*int rowCount = 0;*/
             string connStr = _configuration.GetConnectionString("MySqlConn");
             MySqlConnection mysqlconn = new MySqlConnection();
 
@@ -271,7 +276,7 @@ namespace RewriteService.Controllers {
             } finally {
                 try {
                     mysqlconn.Close();
-                } catch (Exception e) {
+                } catch {
                     throw;
                 }
             }
@@ -280,7 +285,7 @@ namespace RewriteService.Controllers {
         [HttpGet]
         [Route("getProdukKhusus")]
         public IActionResult getProdukKhusus([FromQuery] string kode_modul, [FromQuery] string nama_modul, [FromQuery] string flag_so) {
-            int rowCount = 0;
+            /*int rowCount = 0;*/
             string connStr = _configuration.GetConnectionString("MySqlConn");
             MySqlConnection mysqlconn = new MySqlConnection(connStr);
             
@@ -321,7 +326,7 @@ namespace RewriteService.Controllers {
             } finally {
                 try {
                     mysqlconn.Close();
-                } catch (Exception e) {
+                } catch {
                     throw;
                 }
             }
@@ -363,7 +368,7 @@ namespace RewriteService.Controllers {
             } finally {
                 try {
                     mysqlconn.Close();
-                } catch (Exception e) {
+                } catch {
                     throw;
                 }
             }
