@@ -118,7 +118,13 @@ namespace RewriteService.Controllers {
         }
 
         [HttpGet]
-        public IActionResult GetNPout(string appname, string toko, string dc, string tipeNP) {
+        public IActionResult Index() {
+            return Ok();
+        }
+
+        [HttpGet]
+        [Route("getNPout")]
+        public IActionResult GetNPout([FromQuery] string appname, [FromQuery] string toko, [FromQuery] string dc, [FromQuery] string tipeNP) {
             string connStr = _configuration.GetConnectionString("MySqlConn");
             using MySqlConnection mysqlconn = new MySqlConnection();
 
@@ -175,6 +181,52 @@ namespace RewriteService.Controllers {
                     throw;
                 }
             }
-        }   
+        }
+
+        [HttpGet]
+        [Route("getFTCabang")]
+        public IActionResult getFTCabang([FromQuery] string appname) {
+            string connStr = _configuration.GetConnectionString("MySqlConn");
+            MySqlConnection mysqlconn = new MySqlConnection(connStr);
+            try {
+                if (isApproved(appname)) {
+                    MySqlCommand mysqlcmd = new MySqlCommand("", mysqlconn);
+
+                    if (mysqlconn.State == ConnectionState.Closed) {
+                        mysqlconn.Open();
+                    }
+
+                    mysqlcmd.CommandText = "SHOW TABLES LIKE 'ft_wrc'";
+                    if (mysqlcmd.ExecuteScalar() != null && string.IsNullOrEmpty(mysqlcmd.ExecuteScalar().ToString())) {
+                        mysqlcmd.CommandText = @"SELECT prdcd, toko, ft, start_date, end_date, jenis FROM ft_wrc ;";
+                    } else {
+                        mysqlcmd.CommandText = @"SELECT prdcd, toko, ft, start_date, end_date, IF(jenis_ft='SSN','FT_SSN_DEV','FT_DEV') AS jenis " +
+                                                "FROM setting_ft_gabung " +
+                                                "WHERE start_date<=CURDATE() AND end_date>=CURDATE() AND (IFNULL(recid,'')<>1 OR app_dcm=1);";
+                    }
+
+                    MySqlDataAdapter mysqlda = new MySqlDataAdapter();
+                    DataTable dt = new DataTable();
+                    mysqlda.SelectCommand = mysqlcmd;
+                    mysqlda.Fill(dt);
+
+                    if (dt.Rows.Count > 0) {
+                        return Ok(JsonConvert.SerializeObject(dt));
+                    } else {
+                        return NotFound("No Data");
+                    }
+                } else {
+                    return Unauthorized();
+                }
+            } catch (Exception e) {
+                throw;
+            } finally {
+                try {
+                    mysqlconn.Close();
+                } catch (Exception e) {
+                    throw;
+                }
+            }
+        }
     }
 }
