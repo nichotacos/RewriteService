@@ -1,0 +1,6 @@
+@RewriteService_HostAddress = http://localhost:5198
+
+GET {{RewriteService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
