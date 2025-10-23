@@ -326,5 +326,47 @@ namespace RewriteService.Controllers {
                 }
             }
         }
+
+        [HttpGet]
+        [Route("getDataRTE")]
+        public IActionResult getDataRTE([FromQuery] string appname, [FromQuery] string cabang, [FromQuery] string listPlu, [FromQuery] string shop, [FromQuery] string tanggal) {
+            string connStr = _configuration.GetConnectionString("MySqlConn");
+            MySqlConnection mysqlconn = new MySqlConnection(connStr);
+
+            try {
+                if (isApproved(appname)) {
+                    MySqlCommand mysqlcmd = new MySqlCommand("", mysqlconn);
+
+                    if (mysqlconn.State == ConnectionState.Closed) {
+                        mysqlconn.Open();
+                    }
+
+                    // Get data RTE
+                    mysqlcmd.CommandText = $"SELECT '{cabang.ToUpper()}' AS CABANG, SHOP AS TOKO, PRDCD, QTY, DATA_FORMAT(TGL1, '%Y-%m-%d') AS TANGGAL_RETUR  FROM wt_{tanggal}";
+                    mysqlcmd.CommandText = $" WHERE RTYPE = 'K' AND PRDCD IN ({listPlu}) AND SHOP = '{shop}'";
+
+                    MySqlDataAdapter mysqlda = new MySqlDataAdapter(mysqlcmd);
+                    DataTable dt = new DataTable();
+                    mysqlda.SelectCommand = mysqlcmd;
+                    mysqlda.Fill(dt);
+
+                    if (dt.Rows.Count > 0) {
+                        return Ok(JsonConvert.SerializeObject(dt));
+                    } else {
+                        return NotFound("No Data");
+                    }
+                } else {
+                    return Unauthorized();
+                }
+            } catch (Exception e) {
+                return BadRequest(e.Message);
+            } finally {
+                try {
+                    mysqlconn.Close();
+                } catch (Exception e) {
+                    throw;
+                }
+            }
+        }
     }
 }
