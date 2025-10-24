@@ -33,7 +33,7 @@ namespace RewriteService.Controllers {
         [HttpPost("request-info")]
         public bool isApproved(string appname) {
             string ip, hostname, fungsi, param;
-            string strConn = _configuration.GetConnectionString("MySqlConn");
+            string strConn = _configuration.GetConnectionString("MySqlConn").ToString().Replace("[pwd]", "root112233");
 
             using MySqlConnection mysqlconn = new MySqlConnection(strConn);
             using MySqlCommand mysqlcmd = new MySqlCommand("", mysqlconn);
@@ -95,17 +95,19 @@ namespace RewriteService.Controllers {
                                     ")";
                 mysqlcmd.ExecuteNonQuery();
 
-                mysqlcmd.CommandText = @"INSERT INTO poscbang.webServiceUsage(ip, hostname, Appname, fungsi, param, addtime) VALUES " +
-                                            $"('{ip}, {hostname}, {appname}, {fungsi}, {param.Replace("\"", "").Replace("'", "")} ', NOW())";
+                mysqlcmd.CommandText = @"INSERT INTO poscabang.webServiceUsage(ip, hostname, Appname, fungsi, param, addtime) VALUES " +
+                                            $"('{ip}', '{hostname}', '{appname}', '{fungsi}', '{param.Replace("\"", "").Replace("'", "")}', NOW())";
                 mysqlcmd.ExecuteNonQuery();
 
-                mysqlcmd.CommandText = @"INSERT INTO poscabang.webServiceApproval (ip, hostname, Appname, addtime, last_access) VALUES " +
-                                            $"('{ip}, {hostname}, {appname}, 'NOW(), NOW()) ON DUPLICATE KEY UPDATE last_access=VALUES(last_access) ";
+                mysqlcmd.CommandText = @"INSERT INTO poscabang.webServiceApproval (ip, hostname, Appname, addtime, last_access, approval) VALUES " +
+                                            $"('{ip}', '{hostname}', '{appname}', NOW(), NOW(), '1') ON DUPLICATE KEY UPDATE last_access=VALUES(last_access) ";
                 mysqlcmd.ExecuteNonQuery();
 
                 mysqlcmd.CommandText = $"SELECT COUNT(*) FROM poscabang.webServiceApproval WHERE ip='{ip}' AND approval='1'";
 
                 var result = mysqlcmd.ExecuteScalar();
+                var executeScalarValue = mysqlcmd.ExecuteScalar();
+                var executeScalarInt = Convert.ToInt32(executeScalarValue);
                 if (mysqlcmd.ExecuteScalar() != null && Convert.ToInt32(mysqlcmd.ExecuteScalar()) > 0) {
                     /*return $@"IP: {ip}" +
                         $"Hostname: {hostname}" +
@@ -136,9 +138,10 @@ namespace RewriteService.Controllers {
 
         [HttpGet]
         [Route("getNPout")]
+        // Get nota penerimaan outstanding
         public IActionResult GetNPout([FromQuery] string appname, [FromQuery] string toko, [FromQuery] string dc, [FromQuery] string tipeNP) {
-            string connStr = _configuration.GetConnectionString("MySqlConn");
-            using MySqlConnection mysqlconn = new MySqlConnection();
+            string strConn = _configuration.GetConnectionString("MySqlConn").ToString().Replace("[pwd]", "root112233");
+            using MySqlConnection mysqlconn = new MySqlConnection(strConn);
 
             try {
                 if (isApproved(appname)) {
@@ -148,7 +151,7 @@ namespace RewriteService.Controllers {
                         mysqlconn.Open();
                     }
 
-                    /*22/01/2025
+/*                    22 / 01 / 2025
                     Revisi utk ubah sumber data brd_npb_all ke brd_npb_detil / sum
                     mysqlcmd.CommandText = "SELECT plu AS prdcd, SUM(qty) AS qty " &
                                            "FROM poscabang.brd_npb_all " &
@@ -159,7 +162,7 @@ namespace RewriteService.Controllers {
                         mysqlcmd.CommandText = "SELECT plu AS prdcd, SUM(qty) AS qty";
                         mysqlcmd.CommandText += " FROM poscabang.brd_npr_sum a LEFT JOIN poscabang.brd_npr_detil b";
                         mysqlcmd.CommandText += " ON a.namafile = b.namafile ";
-                        mysqlcmd.CommandText += $" WHERE a.kodedc='{dc}' AND a.toko='{toko}' AND a.namafile LIKE '{toko}%' AND bukti_tgl_bpb IS NULL AND a.tgl_docno >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) ";
+                        mysqlcmd.CommandText += $" WHERE a.kodedc='{dc}' AND a.toko='{toko}' AND a.namafile LIKE '{tipeNP}%' AND bukti_tgl_bpb IS NULL AND a.tgl_docno >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) ";
                         mysqlcmd.CommandText += " GROUP BY plu ";
                     } else {
                         /*23 / 6 / 2025
@@ -198,8 +201,8 @@ namespace RewriteService.Controllers {
         [HttpGet]
         [Route("getFTCabang")]
         public IActionResult getFTCabang([FromQuery] string appname) {
-            string connStr = _configuration.GetConnectionString("MySqlConn");
-            MySqlConnection mysqlconn = new MySqlConnection(connStr);
+            string strConn = _configuration.GetConnectionString("MySqlConn").ToString().Replace("[pwd]", "root112233");
+            MySqlConnection mysqlconn = new MySqlConnection(strConn);
             try {
                 if (isApproved(appname)) {
                     MySqlCommand mysqlcmd = new MySqlCommand("", mysqlconn);
@@ -244,8 +247,8 @@ namespace RewriteService.Controllers {
         [HttpGet]
         [Route("getFTCabangCount")]
         public IActionResult getFTCabangCount([FromQuery] string appname) {
-            /*int rowCount = 0;*/
-            string connStr = _configuration.GetConnectionString("MySqlConn");
+            int rowCount = 0;
+            string strConn = _configuration.GetConnectionString("MySqlConn").ToString().Replace("[pwd]", "root112233");
             MySqlConnection mysqlconn = new MySqlConnection();
 
             try {
@@ -292,10 +295,10 @@ namespace RewriteService.Controllers {
         [HttpGet]
         [Route("getProdukKhusus")]
         public IActionResult getProdukKhusus([FromQuery] string kode_modul, [FromQuery] string nama_modul, [FromQuery] string flag_so) {
-            /*int rowCount = 0;*/
-            string connStr = _configuration.GetConnectionString("MySqlConn");
-            MySqlConnection mysqlconn = new MySqlConnection(connStr);
-            
+            int rowCount = 0;
+            string strConn = _configuration.GetConnectionString("MySqlConn").ToString().Replace("[pwd]", "root112233");
+            MySqlConnection mysqlconn = new MySqlConnection(strConn);
+
             try {
                 MySqlCommand mysqlcmd = new MySqlCommand("", mysqlconn);
 
@@ -342,8 +345,8 @@ namespace RewriteService.Controllers {
         [HttpGet]
         [Route("getDataRTE")]
         public IActionResult getDataRTE([FromQuery] string appname, [FromQuery] string cabang, [FromQuery] string listPlu, [FromQuery] string shop, [FromQuery] string tanggal) {
-            string connStr = _configuration.GetConnectionString("MySqlConn");
-            MySqlConnection mysqlconn = new MySqlConnection(connStr);
+            string strConn = _configuration.GetConnectionString("MySqlConn").ToString().Replace("[pwd]", "root112233");
+            MySqlConnection mysqlconn = new MySqlConnection(strConn);
 
             try {
                 if (isApproved(appname)) {
@@ -354,8 +357,8 @@ namespace RewriteService.Controllers {
                     }
 
                     // Get data RTE
-                    mysqlcmd.CommandText = $"SELECT '{cabang.ToUpper()}' AS CABANG, SHOP AS TOKO, PRDCD, QTY, DATA_FORMAT(TGL1, '%Y-%m-%d') AS TANGGAL_RETUR  FROM wt_{tanggal}";
-                    mysqlcmd.CommandText = $" WHERE RTYPE = 'K' AND PRDCD IN ({listPlu}) AND SHOP = '{shop}'";
+                    mysqlcmd.CommandText = $"SELECT '{cabang.ToUpper()}' AS CABANG, SHOP AS TOKO, PRDCD, QTY, DATE_FORMAT(TGL1, '%Y-%m-%d') AS TANGGAL_RETUR  FROM wt_{tanggal}";
+                    mysqlcmd.CommandText += $" WHERE RTYPE = 'K' AND PRDCD IN ({listPlu}) AND SHOP = '{shop}'";
 
                     MySqlDataAdapter mysqlda = new MySqlDataAdapter(mysqlcmd);
                     DataTable dt = new DataTable();
