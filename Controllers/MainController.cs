@@ -16,10 +16,17 @@ namespace RewriteService.Controllers {
     public class MainController : ControllerBase {
         private readonly IConfiguration _configuration;
         private readonly LoggerService _logger;
+        private readonly string version = "1.0.1.7";
 
         public MainController(IConfiguration configuration, LoggerService logger) {
             _configuration = configuration;
             _logger = logger;
+        }
+
+        [HttpGet]
+        [Route("get-version")]
+        public IActionResult GetVersion() {
+            return Ok(version);
         }
 
         [HttpGet("request-info")]
