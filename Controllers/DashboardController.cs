@@ -246,5 +246,41 @@ namespace RewriteService.Controllers {
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpDelete]
+        [Route("users")]
+        public IActionResult DeleteUser([FromQuery] string appName, [FromQuery] int id) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName)) return Unauthorized();
+
+                using var mysqlconn = new MySqlConnection(strConn);
+                if (mysqlconn.State != ConnectionState.Open) {
+                    mysqlconn.Open();
+                }
+
+                string sql = "DELETE FROM USERS" +
+                    " WHERE user_id = @id";
+
+                using var cmd = new MySqlCommand(sql, mysqlconn);
+                cmd.Parameters.AddWithValue("@id", id);
+
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                if (rowsAffected > 0) {
+                    return Ok(new {
+                        message = "User deleted successfully",
+                    });
+                } else {
+                    return NotFound(new {
+                        message = $"User with ID: {id} does not exist"
+                    });
+                }
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
