@@ -195,5 +195,56 @@ namespace RewriteService.Controllers {
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        [HttpPut]
+        [Route("users")]
+        public IActionResult UpdateUser([FromQuery] string appName, [FromBody] UserRequest user) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName))
+                    return Unauthorized();
+
+                using var mysqlconn = new MySqlConnection(strConn);
+                mysqlconn.Open();
+
+                string sql = @"
+                    UPDATE USERS 
+                    SET username = @username, 
+                        hashed_password = @hashed_password,
+                        first_name = @first_name,
+                        last_name = @last_name,
+                        role = @role
+                    WHERE user_id = @id";
+
+                using var cmd = new MySqlCommand(sql, mysqlconn);
+                cmd.Parameters.AddWithValue("@username", user.Username);
+                cmd.Parameters.AddWithValue("@hashed_password", user.HashedPassword);
+                cmd.Parameters.AddWithValue("@first_name", user.FirstName);
+                cmd.Parameters.AddWithValue("@last_name", user.LastName);
+                cmd.Parameters.AddWithValue("@role", user.Role);
+                cmd.Parameters.AddWithValue("@id", user.UserID);
+
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                if (rowsAffected > 0) {
+                    return Ok(new {
+                        message = "User updated successfully",
+                        updatedUser = new {
+                            user.UserID,
+                            user.Username,
+                            user.FirstName,
+                            user.LastName,
+                            user.Role
+                        }
+                    });
+                } else {
+                    return NotFound(new { message = "User not found or no changes made" });
+                }
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
