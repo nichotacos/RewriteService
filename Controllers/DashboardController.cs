@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using Org.BouncyCastle.Bcpg.OpenPgp;
+using RewriteService.Model;
 using System.Data;
 using System.Net;
 
@@ -158,6 +159,40 @@ namespace RewriteService.Controllers {
                 } catch {
                     throw;
                 }
+            }
+        }
+
+        [HttpPost]
+        [Route("users")]
+        public IActionResult AddUser([FromQuery] string appName, [FromBody] UserRequest user) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName))
+                    return Unauthorized();
+
+                using var mysqlconn = new MySqlConnection(strConn);
+                mysqlconn.Open();
+
+                string sql = @"INSERT INTO USERS (username, hashed_password, first_name, last_name, role)
+                       VALUES (@username, @hashed_password, @first_name, @last_name, @role)";
+
+                using var cmd = new MySqlCommand(sql, mysqlconn);
+                cmd.Parameters.AddWithValue("@username", user.Username);
+                cmd.Parameters.AddWithValue("@hashed_password", user.HashedPassword);
+                cmd.Parameters.AddWithValue("@first_name", user.FirstName);
+                cmd.Parameters.AddWithValue("@last_name", user.LastName);
+                cmd.Parameters.AddWithValue("@role", user.Role);
+
+                int rows = cmd.ExecuteNonQuery();
+
+                if (rows > 0)
+                    return Ok(new { message = "User added successfully" });
+                else
+                    return BadRequest(new { message = "Insert failed" });
+            } catch (Exception ex) {
+                return BadRequest(new { error = ex.Message });
             }
         }
     }
