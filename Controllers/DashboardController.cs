@@ -146,7 +146,7 @@ namespace RewriteService.Controllers {
                     if (dt.Rows.Count > 0) {
                         return Ok(JsonConvert.SerializeObject(dt));
                     } else {
-                        return NotFound("No data");
+                        return Ok(new List<object>());
                     }
                 } else {
                     return Unauthorized();
@@ -175,15 +175,15 @@ namespace RewriteService.Controllers {
                 using var mysqlconn = new MySqlConnection(strConn);
                 mysqlconn.Open();
 
-                string sql = @"INSERT INTO USERS (username, hashed_password, first_name, last_name, role)
-                       VALUES (@username, @hashed_password, @first_name, @last_name, @role)";
+                string sql = @"INSERT INTO USERS (username, hashed_password, first_name, last_name, role_id)
+                       VALUES (@username, @hashed_password, @first_name, @last_name, @role_id)";
 
                 using var cmd = new MySqlCommand(sql, mysqlconn);
                 cmd.Parameters.AddWithValue("@username", user.Username);
                 cmd.Parameters.AddWithValue("@hashed_password", user.HashedPassword);
                 cmd.Parameters.AddWithValue("@first_name", user.FirstName);
                 cmd.Parameters.AddWithValue("@last_name", user.LastName);
-                cmd.Parameters.AddWithValue("@role", user.Role);
+                cmd.Parameters.AddWithValue("@role_id", user.RoleID);
 
                 int rows = cmd.ExecuteNonQuery();
 
@@ -215,7 +215,7 @@ namespace RewriteService.Controllers {
                         hashed_password = @hashed_password,
                         first_name = @first_name,
                         last_name = @last_name,
-                        role = @role
+                        role_id = @role_id
                     WHERE user_id = @id";
 
                 using var cmd = new MySqlCommand(sql, mysqlconn);
@@ -223,7 +223,7 @@ namespace RewriteService.Controllers {
                 cmd.Parameters.AddWithValue("@hashed_password", user.HashedPassword);
                 cmd.Parameters.AddWithValue("@first_name", user.FirstName);
                 cmd.Parameters.AddWithValue("@last_name", user.LastName);
-                cmd.Parameters.AddWithValue("@role", user.Role);
+                cmd.Parameters.AddWithValue("@role_id", user.RoleID);
                 cmd.Parameters.AddWithValue("@id", user.UserID);
 
                 int rowsAffected = cmd.ExecuteNonQuery();
@@ -236,7 +236,7 @@ namespace RewriteService.Controllers {
                             user.Username,
                             user.FirstName,
                             user.LastName,
-                            user.Role
+                            user.RoleID
                         }
                     });
                 } else {
