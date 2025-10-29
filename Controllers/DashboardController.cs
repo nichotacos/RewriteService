@@ -282,5 +282,42 @@ namespace RewriteService.Controllers {
                 return BadRequest(ex.Message);
             }
         }
+
+
+        // Roles
+        [HttpGet]
+        [Route("roles")]
+        public async Task<IActionResult> GetRoles([FromQuery] string appName) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName))
+                    return Unauthorized();
+
+                var roles = new List<RoleRequest>();
+
+                using var conn = new MySqlConnection(strConn);
+                await conn.OpenAsync();
+
+                string sql = "SELECT role_id, role_name FROM roles";
+                using var cmd = new MySqlCommand(sql, conn);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync()) {
+                    roles.Add(new RoleRequest {
+                        RoleID = reader.GetInt32("role_id"),
+                        RoleName = reader.GetString("role_name")
+                    });
+                }
+
+                if (roles.Count == 0)
+                    return NotFound("No data");
+
+                return Ok(roles);
+            } catch (Exception ex) {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }
