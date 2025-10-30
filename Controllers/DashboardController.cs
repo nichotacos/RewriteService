@@ -348,5 +348,39 @@ namespace RewriteService.Controllers {
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPut]
+        [Route("roles")]
+        public IActionResult UpdateRole([FromQuery] string appName, [FromBody] RoleRequest role) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName)) return Unauthorized();
+
+                using var mysqlconn = new MySqlConnection(strConn);
+                mysqlconn.Open();
+
+                string sql = "UPDATE ROLES" +
+                    " SET role_name = @role_name" +
+                    " WHERE role_id = @role_id";
+
+                using var cmd = new MySqlCommand(sql, mysqlconn);
+                cmd.Parameters.AddWithValue("@role_name", role.RoleName);
+                cmd.Parameters.AddWithValue("@role_id", role.RoleID);
+
+                int rowCounts = cmd.ExecuteNonQuery();
+
+                if (rowCounts > 0) {
+                    return Ok(new { message = "Role updated successfully" });
+                } else {
+                    return BadRequest(new {
+                        message = "Failed to update role"
+                    });
+                }
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
