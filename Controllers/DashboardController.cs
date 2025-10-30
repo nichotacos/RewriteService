@@ -212,6 +212,8 @@ namespace RewriteService.Controllers {
             string strConn = _configuration.GetConnectionString("MySqlConn2")
                 .Replace("[pwd]", "root112233");
 
+            Console.WriteLine("Hit login api");
+
             try {
                 if (!isApproved(appName)) return Unauthorized();
 
@@ -223,7 +225,9 @@ namespace RewriteService.Controllers {
                 cmd.Parameters.AddWithValue("@username", loginData.Username);
 
                 using var reader = await cmd.ExecuteReaderAsync();
-                if (!reader.Read()) return Unauthorized("Username not found");
+                if (!reader.Read()) return Unauthorized(new {
+                    message = "Username tidak ditemukan"
+                });
 
                 string hashedPassword = reader.GetString("hashed_password");
                 if (!BCrypt.Net.BCrypt.Verify(loginData.Password, hashedPassword)) {
