@@ -6,6 +6,14 @@ using Org.BouncyCastle.Bcpg.OpenPgp;
 using RewriteService.Model;
 using System.Data;
 using System.Net;
+using BCrypt.Net;
+using Org.BouncyCastle.Crypto.Generators;
+using System.IdentityModel;
+using Org.BouncyCastle.Bcpg;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace RewriteService.Controllers {
     [Route("api/[controller]")]
@@ -175,12 +183,14 @@ namespace RewriteService.Controllers {
                 using var mysqlconn = new MySqlConnection(strConn);
                 mysqlconn.Open();
 
+                string hashedPassword = BCrypt.Net.BCrypt.HashPassword(user.HashedPassword);
+
                 string sql = @"INSERT INTO USERS (username, hashed_password, first_name, last_name, role_id)
                        VALUES (@username, @hashed_password, @first_name, @last_name, @role_id)";
 
                 using var cmd = new MySqlCommand(sql, mysqlconn);
                 cmd.Parameters.AddWithValue("@username", user.Username);
-                cmd.Parameters.AddWithValue("@hashed_password", user.HashedPassword);
+                cmd.Parameters.AddWithValue("@hashed_password", hashedPassword);
                 cmd.Parameters.AddWithValue("@first_name", user.FirstName);
                 cmd.Parameters.AddWithValue("@last_name", user.LastName);
                 cmd.Parameters.AddWithValue("@role_id", user.RoleID);
@@ -193,6 +203,44 @@ namespace RewriteService.Controllers {
                     return BadRequest(new { message = "Insert failed" });
             } catch (Exception ex) {
                 return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("login")]
+        public async Task<IActionResult> Login([FromQuery] string appName, [FromBody] LoginRequest loginData) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName)) return Unauthorized();
+
+                using var mysqlconn = new MySqlConnection(strConn);
+                await mysqlconn.OpenAsync();
+
+                string sql = "SELECT user_id, username, hashed_password, first_name, last_name, role_id FROM USERS WHERE username = @username";
+                using var cmd = new MySqlCommand(sql, mysqlconn);
+                cmd.Parameters.AddWithValue("@username", loginData.Username);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (!reader.Read()) return Unauthorized("Username not found");
+
+                string hashedPassword = reader.GetString("hashed_password");
+                if (!BCrypt.Net.BCrypt.Verify(loginData.Password, hashedPassword)) {
+                    return Unauthorized("Invalid password");
+                }
+
+                var token = GenerateJwtToken(reader.GetInt32("user_id"), reader.GetString("username"));
+
+                return Ok(new {
+                    token,
+                    username = reader.GetString("username"),
+                    firstname = reader.GetString("first_name"),
+                    lastname = reader.GetString("last_name"),
+                    role_id = reader.GetInt32("role_id")
+                });
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
             }
         }
 
@@ -414,6 +462,26 @@ namespace RewriteService.Controllers {
             } catch (Exception ex) { 
                 return BadRequest(ex.Message); 
             }
+        }
+
+        private string GenerateJwtToken(int userId, string username) {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("c46b43c50ee64bd60935d4be5e604309"));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[] {
+                new Claim(JwtRegisteredClaimNames.Sub, username),
+                new Claim("userId", userId.ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "Dashboard Management",
+                audience: "Dashboard Management",
+                claims: claims,
+                expires: DateTime.Now.AddHours(4),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }
