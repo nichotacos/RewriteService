@@ -382,5 +382,38 @@ namespace RewriteService.Controllers {
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpDelete]
+        [Route("roles")]
+        public IActionResult DeleteRole([FromQuery] string appName, [FromQuery] int role_id) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName)) return Unauthorized();
+
+                using var mysqlconn = new MySqlConnection(strConn);
+                mysqlconn.Open();
+
+                string sql = "DELETE FROM roles WHERE role_id = @role_id";
+                using var cmd = new MySqlCommand(sql, mysqlconn);
+
+                cmd.Parameters.AddWithValue("@role_id", role_id);
+
+                int rowCounts = cmd.ExecuteNonQuery();
+
+                if (rowCounts > 0) {
+                    return Ok(new {
+                        message = "Role deleted successfully"
+                    });
+                } else {
+                    return BadRequest(new {
+                        message = "Failed to delete role"
+                    });
+                } 
+            } catch (Exception ex) { 
+                return BadRequest(ex.Message); 
+            }
+        }
     }
 }
