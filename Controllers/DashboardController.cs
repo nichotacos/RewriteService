@@ -319,5 +319,34 @@ namespace RewriteService.Controllers {
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        [HttpPost]
+        [Route("roles")]
+        public IActionResult AddUser([FromQuery] string appName, [FromBody] RoleRequest role) {
+            string strConn = _configuration.GetConnectionString("MySqlConn2")
+                .Replace("[pwd]", "root112233");
+
+            try {
+                if (!isApproved(appName)) return Unauthorized();
+
+                using var mysqlconn = new MySqlConnection(strConn);
+                mysqlconn.Open();
+
+                string sql = "INSERT INTO ROLES (role_name) VALUES (@role_name)";
+
+                using var cmd = new MySqlCommand(sql, mysqlconn);
+                cmd.Parameters.AddWithValue("@role_name", role.RoleName);
+
+                int rowCounte = cmd.ExecuteNonQuery();
+
+                if (rowCounte > 0)
+                    return Ok(new { message = "Role added successfully" });
+                else
+                    return BadRequest(new { message = "Insert failed" });
+
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
