@@ -14,6 +14,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using System.Collections.Concurrent;
 
 namespace RewriteService.Controllers {
     [Route("api/[controller]")]
@@ -22,6 +24,8 @@ namespace RewriteService.Controllers {
         private readonly IConfiguration _configuration;
         private readonly LoggerService _logger;
         private readonly string version = "1.0.1.7";
+
+        private static ConcurrentDictionary<string, string> sessions = new ConcurrentDictionary<string, string>();
 
         public DashboardController(IConfiguration configuration, LoggerService loggerService) {
             _configuration = configuration;
@@ -132,12 +136,13 @@ namespace RewriteService.Controllers {
 
         [HttpGet]
         [Route("users")]
-        public IActionResult GetUsers([FromQuery] string appname) {
+        public IActionResult GetUsers([FromQuery] string appname, [FromHeader(Name = "X-Session-Token")] string token) {
             string strConn = _configuration.GetConnectionString("MySqlConn2").ToString().Replace("[pwd]", "root112233");
             using MySqlConnection mysqlconn = new MySqlConnection(strConn);
 
             try {
-                if (isApproved(appname)) {
+                if (isApproved(appname) && IsValidToken(token)) {
+
                     using MySqlCommand mysqlcmd = new MySqlCommand("", mysqlconn);
 
                     if (mysqlconn.State == ConnectionState.Closed) {
@@ -212,8 +217,6 @@ namespace RewriteService.Controllers {
             string strConn = _configuration.GetConnectionString("MySqlConn2")
                 .Replace("[pwd]", "root112233");
 
-            Console.WriteLine("Hit login api");
-
             try {
                 if (!isApproved(appName)) return Unauthorized();
 
@@ -235,8 +238,10 @@ namespace RewriteService.Controllers {
                 }
 
                 var token = GenerateJwtToken(reader.GetInt32("user_id"), reader.GetString("username"));
+                sessions["authToken"] = token;
 
-                return Ok(new {
+
+				return Ok(new {
                     token,
                     username = reader.GetString("username"),
                     firstname = reader.GetString("first_name"),
@@ -247,6 +252,8 @@ namespace RewriteService.Controllers {
                 return BadRequest(ex.Message);
             }
         }
+
+        public static bool IsValidToken(string token) => sessions.Values.Contains(token);
 
         [HttpPut]
         [Route("users")]

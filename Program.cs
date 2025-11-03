@@ -1,4 +1,7 @@
 
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 namespace RewriteService {
     public class Program {
         public static void Main(string[] args) {
@@ -11,6 +14,9 @@ namespace RewriteService {
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddSingleton<LoggerService>();
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme,
+                options => builder.Configuration.Bind("jwtSettings", options));
 
             var app = builder.Build();
 
